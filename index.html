@@ -200,7 +200,8 @@
           const costo = parseFloat(row.cells[3].textContent.replace('$', ''));
           const total = parseFloat(row.cells[4].textContent.replace('$', ''));
 
-          await addDoc(collection(db, "almacenes/mermas"), {
+          // ✅ Ruta corregida: almaceces/MERMA/registros
+          await addDoc(collection(db, "almacenes", "MERMA", "registros"), {
             descripcion,
             motivo,
             cantidad,
