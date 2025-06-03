@@ -127,9 +127,9 @@
       if (!querySnapshot.empty) {
         const doc = querySnapshot.docs[0].data();
         productoActual = {
-          descripcion: doc.Descripcion,
-          costo: parseFloat(doc.Costo) || 0
-        };
+  descripcion: doc.Concepto,
+  costo: parseFloat(doc["Costo sin Impuesto"]) || 0
+};
         document.getElementById("descripcionProducto").textContent = `${productoActual.descripcion} | Costo: $${productoActual.costo.toFixed(2)}`;
       } else {
         productoActual = null;
