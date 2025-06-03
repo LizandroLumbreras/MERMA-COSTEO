@@ -142,6 +142,8 @@
 
       const cantidad = parseFloat(document.getElementById("cantidadInput").value);
       const motivo = document.getElementById("motivoInput").value.trim();
+      
+      console.log("Agregando:", productoActual, cantidad, motivo);
 
       if (isNaN(cantidad) || cantidad <= 0) return alert("Cantidad inválida.");
       if (!motivo) return alert("Escribe un motivo para la merma.");
