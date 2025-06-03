@@ -192,30 +192,32 @@
       const confirmacion = confirm("¿Deseas guardar todas las mermas en Firebase?");
       if (!confirmacion) return;
 
-      for (let row of rows) {
-        const descripcion = row.cells[0].textContent;
-        const motivo = row.cells[1].textContent;
-        const cantidad = parseFloat(row.cells[2].textContent);
-        const costo = parseFloat(row.cells[3].textContent.replace('$', ''));
-        const total = parseFloat(row.cells[4].textContent.replace('$', ''));
+      try {
+        for (let row of rows) {
+          const descripcion = row.cells[0].textContent;
+          const motivo = row.cells[1].textContent;
+          const cantidad = parseFloat(row.cells[2].textContent);
+          const costo = parseFloat(row.cells[3].textContent.replace('$', ''));
+          const total = parseFloat(row.cells[4].textContent.replace('$', ''));
 
-    try {
-  await addDoc(collection(db, "almacenes/mermas"), {
-    descripcion,
-    motivo,
-    cantidad,
-    costo_unitario: costo,
-    total,
-    fecha: serverTimestamp()
-  });
-} catch (e) {
-  console.error("❌ Error al guardar:", e);
-  alert("Error al guardar la merma.");
-}
+          await addDoc(collection(db, "almacenes/mermas"), {
+            descripcion,
+            motivo,
+            cantidad,
+            costo_unitario: costo,
+            total,
+            fecha: serverTimestamp()
+          });
+        }
 
-      alert("✅ Mermas guardadas exitosamente.");
-      cuerpoTabla.innerHTML = "";
-      totalGeneralEl.textContent = "Total General: $0.00";
+        alert("✅ Mermas guardadas exitosamente.");
+        cuerpoTabla.innerHTML = "";
+        totalGeneralEl.textContent = "Total General: $0.00";
+
+      } catch (e) {
+        console.error("❌ Error al guardar:", e);
+        alert("Ocurrió un error al guardar en Firebase.");
+      }
     }
   </script>
 </body>
