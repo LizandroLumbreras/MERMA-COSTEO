@@ -199,15 +199,19 @@
         const costo = parseFloat(row.cells[3].textContent.replace('$', ''));
         const total = parseFloat(row.cells[4].textContent.replace('$', ''));
 
-        await addDoc(collection(db, "almacenes", "mermas"), {
-          descripcion,
-          motivo,
-          cantidad,
-          costo_unitario: costo,
-          total,
-          fecha: serverTimestamp()
-        });
-      }
+    try {
+  await addDoc(collection(db, "almacenes/mermas"), {
+    descripcion,
+    motivo,
+    cantidad,
+    costo_unitario: costo,
+    total,
+    fecha: serverTimestamp()
+  });
+} catch (e) {
+  console.error("❌ Error al guardar:", e);
+  alert("Error al guardar la merma.");
+}
 
       alert("✅ Mermas guardadas exitosamente.");
       cuerpoTabla.innerHTML = "";
