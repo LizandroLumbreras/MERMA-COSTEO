@@ -97,89 +97,83 @@
 
   <div id="totalGeneral">Total General: $0.00</div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-      authDomain: "inventariopv-643f1.firebaseapp.com",
-      projectId: "inventariopv-643f1",
-      storageBucket: "inventariopv-643f1.appspot.com",
-      messagingSenderId: "96242533231",
-      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+    authDomain: "inventariopv-643f1.firebaseapp.com",
+    projectId: "inventariopv-643f1",
+    storageBucket: "inventariopv-643f1.appspot.com",
+    messagingSenderId: "96242533231",
+    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    let productoActual = null;
-    const cuerpoTabla = document.querySelector("#tablaMerma tbody");
-    const totalGeneralEl = document.getElementById("totalGeneral");
+  let productoActual = null;
+  const cuerpoTabla = document.querySelector("#tablaMerma tbody");
+  const totalGeneralEl = document.getElementById("totalGeneral");
 
-    document.getElementById("codigoInput").addEventListener("change", async () => {
-      const codigo = document.getElementById("codigoInput").value.trim();
-      if (!codigo) return;
+  document.getElementById("codigoInput").addEventListener("change", async () => {
+    const codigo = document.getElementById("codigoInput").value.trim();
+    if (!codigo) return;
 
-      const q = query(collection(db, "productos"), where("Codigo Barra", "==", codigo));
-      const querySnapshot = await getDocs(q);
+    const q = query(collection(db, "productos"), where("Codigo Barra", "==", codigo));
+    const querySnapshot = await getDocs(q);
 
-      if (!querySnapshot.empty) {
-        const doc = querySnapshot.docs[0].data();
-        productoActual = {
-  descripcion: doc.Concepto,
-  costo: parseFloat(doc["Costo sin Impuesto"]) || 0
-};
-        document.getElementById("descripcionProducto").textContent = `${productoActual.descripcion} | Costo: $${productoActual.costo.toFixed(2)}`;
-      } else {
-        productoActual = null;
-        document.getElementById("descripcionProducto").textContent = "Producto no encontrado";
-      }
-    });
-
-    function agregarMerma() {
-      if (!productoActual) return alert("Busca un producto válido primero.");
-
-      const cantidad = parseFloat(document.getElementById("cantidadInput").value);
-      const motivo = document.getElementById("motivoInput").value.trim();
-      
-      console.log("Agregando:", productoActual, cantidad, motivo);
-
-      if (isNaN(cantidad) || cantidad <= 0) return alert("Cantidad inválida.");
-      if (!motivo) return alert("Escribe un motivo para la merma.");
-
-      const total = cantidad * productoActual.costo;
-
-      const fila = document.createElement("tr");
-      fila.innerHTML = `
-        <td>${productoActual.descripcion}</td>
-        <td>${motivo}</td>
-        <td>${cantidad}</td>
-        <td>$${productoActual.costo.toFixed(2)}</td>
-        <td>$${total.toFixed(2)}</td>
-      `;
-      cuerpoTabla.appendChild(fila);
-
-      actualizarTotalGeneral();
-      limpiarCampos();
-    }
-
-    function actualizarTotalGeneral() {
-      let total = 0;
-      cuerpoTabla.querySelectorAll("tr").forEach(row => {
-        const valor = parseFloat(row.cells[4].textContent.replace('$', ''));
-        total += valor;
-      });
-      totalGeneralEl.textContent = `Total General: $${total.toFixed(2)}`;
-    }
-
-    function limpiarCampos() {
-      document.getElementById("codigoInput").value = "";
-      document.getElementById("cantidadInput").value = "";
-      document.getElementById("motivoInput").value = "";
-      document.getElementById("descripcionProducto").textContent = "";
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0].data();
+      productoActual = {
+        descripcion: doc.Concepto,
+        costo: parseFloat(doc["Costo sin Impuesto"]) || 0
+      };
+      document.getElementById("descripcionProducto").textContent =
+        `${productoActual.descripcion} | Costo: $${productoActual.costo.toFixed(2)}`;
+    } else {
       productoActual = null;
+      document.getElementById("descripcionProducto").textContent = "Producto no encontrado";
     }
-  </script>
-</body>
+  });
+    const cantidad = parseFloat(document.getElementById("cantidadInput").value);
+    const motivo = document.getElementById("motivoInput").value.trim();
+
+    if (isNaN(cantidad) || cantidad <= 0) return alert("Cantidad inválida.");
+    if (!motivo) return alert("Escribe un motivo para la merma.");
+
+    const total = cantidad * productoActual.costo;
+
+    const fila = document.createElement("tr");
+    fila.innerHTML = `
+      <td>${productoActual.descripcion}</td>
+      <td>${motivo}</td>
+      <td>${cantidad}</td>
+      <td>$${productoActual.costo.toFixed(2)}</td>
+      <td>$${total.toFixed(2)}</td>
+    `;
+    cuerpoTabla.appendChild(fila);
+
+    actualizarTotalGeneral();
+    limpiarCampos();
+  }
+
+  function actualizarTotalGeneral() {
+    let total = 0;
+    cuerpoTabla.querySelectorAll("tr").forEach(row => {
+      const valor = parseFloat(row.cells[4].textContent.replace('$', ''));
+      total += valor;
+    });
+    totalGeneralEl.textContent = `Total General: $${total.toFixed(2)}`;
+  }
+
+  function limpiarCampos() {
+    document.getElementById("codigoInput").value = "";
+    document.getElementById("cantidadInput").value = "";
+    document.getElementById("motivoInput").value = "";
+    document.getElementById("descripcionProducto").textContent = "";
+    productoActual = null;
+  }
+</script></body>
 </html>
