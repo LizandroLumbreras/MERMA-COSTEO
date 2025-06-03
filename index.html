@@ -40,6 +40,7 @@
       border: none;
       cursor: pointer;
       border-radius: 5px;
+      margin-top: 10px;
     }
 
     table {
@@ -96,10 +97,11 @@
   </table>
 
   <div id="totalGeneral">Total General: $0.00</div>
+  <button onclick="guardarMermas()">💾 Guardar mermas</button>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -178,6 +180,38 @@
       document.getElementById("motivoInput").value = "";
       document.getElementById("descripcionProducto").textContent = "";
       productoActual = null;
+    }
+
+    window.guardarMermas = async function () {
+      const rows = cuerpoTabla.querySelectorAll("tr");
+      if (rows.length === 0) {
+        alert("No hay mermas para guardar.");
+        return;
+      }
+
+      const confirmacion = confirm("¿Deseas guardar todas las mermas en Firebase?");
+      if (!confirmacion) return;
+
+      for (let row of rows) {
+        const descripcion = row.cells[0].textContent;
+        const motivo = row.cells[1].textContent;
+        const cantidad = parseFloat(row.cells[2].textContent);
+        const costo = parseFloat(row.cells[3].textContent.replace('$', ''));
+        const total = parseFloat(row.cells[4].textContent.replace('$', ''));
+
+        await addDoc(collection(db, "almacenes", "mermas"), {
+          descripcion,
+          motivo,
+          cantidad,
+          costo_unitario: costo,
+          total,
+          fecha: serverTimestamp()
+        });
+      }
+
+      alert("✅ Mermas guardadas exitosamente.");
+      cuerpoTabla.innerHTML = "";
+      totalGeneralEl.textContent = "Total General: $0.00";
     }
   </script>
 </body>
