@@ -80,6 +80,7 @@
     <div class="descripcion-box" id="descripcionProducto"></div>
     <input type="number" id="cantidadInput" placeholder="Cantidad (piezas o kg)" />
     <textarea id="motivoInput" placeholder="Motivo de la merma"></textarea>
+    <input type="text" id="sucursalInput" placeholder="Sucursal o Bodega" />
     <button onclick="agregarMerma()">Agregar a la tabla</button>
   </div>
 
@@ -189,8 +190,17 @@
         return;
       }
 
+      const sucursal = document.getElementById("sucursalInput").value.trim();
+      if (!sucursal) {
+        alert("Escribe la sucursal o bodega.");
+        return;
+      }
+
       const confirmacion = confirm("¿Deseas guardar todas las mermas en Firebase?");
       if (!confirmacion) return;
+
+      const ahora = new Date();
+      const folio = `MERMA-${ahora.getFullYear()}${(ahora.getMonth()+1).toString().padStart(2,'0')}${ahora.getDate().toString().padStart(2,'0')}-${ahora.getHours()}${ahora.getMinutes()}${ahora.getSeconds()}`;
 
       try {
         for (let row of rows) {
@@ -200,20 +210,22 @@
           const costo = parseFloat(row.cells[3].textContent.replace('$', ''));
           const total = parseFloat(row.cells[4].textContent.replace('$', ''));
 
-          // ✅ Ruta corregida: almaceces/MERMA/registros
           await addDoc(collection(db, "almacenes", "MERMA", "registros"), {
             descripcion,
             motivo,
             cantidad,
             costo_unitario: costo,
             total,
+            sucursal,
+            folio,
             fecha: serverTimestamp()
           });
         }
 
-        alert("✅ Mermas guardadas exitosamente.");
+        alert(`✅ Mermas guardadas exitosamente con folio: ${folio}`);
         cuerpoTabla.innerHTML = "";
         totalGeneralEl.textContent = "Total General: $0.00";
+        document.getElementById("sucursalInput").value = "";
 
       } catch (e) {
         console.error("❌ Error al guardar:", e);
