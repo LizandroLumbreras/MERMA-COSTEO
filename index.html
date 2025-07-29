@@ -76,7 +76,8 @@
   <h2>📉 Costeo de Merma</h2>
 
   <div class="input-box">
-    <input type="text" id="codigoInput" placeholder="Escanea o escribe el código de barras" />
+   <input type="text" id="codigoInput" list="sugerenciasProductos" placeholder="Código o concepto del producto" />
+<datalist id="sugerenciasProductos"></datalist>
     <div class="descripcion-box" id="descripcionProducto"></div>
     <input type="number" id="cantidadInput" placeholder="Cantidad (piezas o kg)" />
     <textarea id="motivoInput" placeholder="Motivo de la merma"></textarea>
@@ -92,6 +93,7 @@
         <th>Cantidad</th>
         <th>Costo Unitario</th>
         <th>Total</th>
+         <th>Acciones</th> <!-- ✅ NUEVA COLUMNA -->
       </tr>
     </thead>
     <tbody></tbody>
@@ -100,9 +102,17 @@
   <div id="totalGeneral">Total General: $0.00</div>
   <button onclick="guardarMermas()">💾 Guardar mermas</button>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+ <script type="module">
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    collection,
+    addDoc,
+    getDocs,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 
     const firebaseConfig = {
       apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -120,26 +130,35 @@
     const cuerpoTabla = document.querySelector("#tablaMerma tbody");
     const totalGeneralEl = document.getElementById("totalGeneral");
 
-    document.getElementById("codigoInput").addEventListener("change", async () => {
-      const codigo = document.getElementById("codigoInput").value.trim();
-      if (!codigo) return;
+const sugerenciasEl = document.getElementById("sugerenciasProductos");
 
-      const docRef = doc(db, "productos", codigo);
-      const docSnap = await getDoc(docRef);
+document.getElementById("codigoInput").addEventListener("input", async (e) => {
+  const entrada = e.target.value.trim().toLowerCase();
+  sugerenciasEl.innerHTML = "";
 
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        productoActual = {
-          descripcion: data.Concepto,
-          costo: parseFloat(data["Costo sin Impuesto"]) || 0
-        };
-        document.getElementById("descripcionProducto").textContent =
-          `${productoActual.descripcion} | Costo: $${productoActual.costo.toFixed(2)}`;
-      } else {
-        productoActual = null;
-        document.getElementById("descripcionProducto").textContent = "Producto no encontrado";
-      }
-    });
+  if (entrada.length < 2) return;
+
+  const productosRef = collection(db, "productos");
+  const snapshot = await getDocs(productosRef);
+
+  const sugerencias = [];
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    const concepto = (data.Concepto || "").toLowerCase();
+    const codigo = docSnap.id;
+
+    if (concepto.includes(entrada) || codigo.includes(entrada)) {
+      sugerencias.push({ codigo, concepto });
+    }
+  });
+
+  sugerencias.slice(0, 10).forEach(item => {
+    const option = document.createElement("option");
+    option.value = `${item.codigo} - ${item.concepto}`;
+    sugerenciasEl.appendChild(option);
+  });
+});
 
     window.agregarMerma = function () {
       if (!productoActual) return alert("Busca un producto válido primero.");
@@ -152,14 +171,15 @@
 
       const total = cantidad * productoActual.costo;
 
-      const fila = document.createElement("tr");
-      fila.innerHTML = `
-        <td>${productoActual.descripcion}</td>
-        <td>${motivo}</td>
-        <td>${cantidad}</td>
-        <td>$${productoActual.costo.toFixed(2)}</td>
-        <td>$${total.toFixed(2)}</td>
-      `;
+     const fila = document.createElement("tr");
+fila.innerHTML = `
+  <td>${productoActual.descripcion}</td>
+  <td>${motivo}</td>
+  <td>${cantidad}</td>
+  <td>$${productoActual.costo.toFixed(2)}</td>
+  <td>$${total.toFixed(2)}</td>
+  <td><button onclick="eliminarFila(this)">❌</button></td>
+`;
       cuerpoTabla.appendChild(fila);
 
       actualizarTotalGeneral();
@@ -182,6 +202,11 @@
       document.getElementById("descripcionProducto").textContent = "";
       productoActual = null;
     }
+   window.eliminarFila = function (btn) {
+  const fila = btn.closest("tr");
+  fila.remove();
+  actualizarTotalGeneral();
+};
 
     window.guardarMermas = async function () {
       const rows = cuerpoTabla.querySelectorAll("tr");
