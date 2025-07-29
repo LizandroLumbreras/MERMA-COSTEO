@@ -4,8 +4,9 @@
   <meta charset="UTF-8" />
   <title>Costeo de Merma</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+ <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -102,161 +103,177 @@
   <div id="totalGeneral">Total General: $0.00</div>
   <button onclick="guardarMermas()">💾 Guardar mermas</button>
 
- <script type="module">
-  import {
-    getFirestore,
-    doc,
-    getDoc,
-    collection,
-    addDoc,
-    getDocs,
-    serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+    authDomain: "inventariopv-643f1.firebaseapp.com",
+    projectId: "inventariopv-643f1",
+    storageBucket: "inventariopv-643f1.appspot.com",
+    messagingSenderId: "96242533231",
+    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  };
 
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-      authDomain: "inventariopv-643f1.firebaseapp.com",
-      projectId: "inventariopv-643f1",
-      storageBucket: "inventariopv-643f1.appspot.com",
-      messagingSenderId: "96242533231",
-      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-    };
+  let productoActual = null;
+  const cuerpoTabla = document.querySelector("#tablaMerma tbody");
+  const totalGeneralEl = document.getElementById("totalGeneral");
+  const sugerenciasEl = document.getElementById("sugerenciasProductos");
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  document.getElementById("codigoInput").addEventListener("input", async (e) => {
+    const entrada = e.target.value.trim().toLowerCase();
+    sugerenciasEl.innerHTML = "";
 
-    let productoActual = null;
-    const cuerpoTabla = document.querySelector("#tablaMerma tbody");
-    const totalGeneralEl = document.getElementById("totalGeneral");
+    if (entrada.length < 2) return;
 
-const sugerenciasEl = document.getElementById("sugerenciasProductos");
+    const snapshot = await db.collection("productos").get();
+    const sugerencias = [];
 
-document.getElementById("codigoInput").addEventListener("input", async (e) => {
-  const entrada = e.target.value.trim().toLowerCase();
-  sugerenciasEl.innerHTML = "";
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      const concepto = (data.Concepto || "").toLowerCase();
+      const codigo = docSnap.id;
 
-  if (entrada.length < 2) return;
+      if (concepto.includes(entrada) || codigo.includes(entrada)) {
+        sugerencias.push({ codigo, concepto });
+      }
+    });
 
-  const productosRef = collection(db, "productos");
-  const snapshot = await getDocs(productosRef);
-
-  const sugerencias = [];
-
-  snapshot.forEach(docSnap => {
-    const data = docSnap.data();
-    const concepto = (data.Concepto || "").toLowerCase();
-    const codigo = docSnap.id;
-
-    if (concepto.includes(entrada) || codigo.includes(entrada)) {
-      sugerencias.push({ codigo, concepto });
-    }
+    sugerencias.slice(0, 10).forEach(item => {
+      const option = document.createElement("option");
+      option.value = `${item.codigo} - ${item.concepto}`;
+      sugerenciasEl.appendChild(option);
+    });
   });
 
-  sugerencias.slice(0, 10).forEach(item => {
-    const option = document.createElement("option");
-    option.value = `${item.codigo} - ${item.concepto}`;
-    sugerenciasEl.appendChild(option);
-  });
-});
-
-    window.agregarMerma = function () {
-      if (!productoActual) return alert("Busca un producto válido primero.");
-
-      const cantidad = parseFloat(document.getElementById("cantidadInput").value);
-      const motivo = document.getElementById("motivoInput").value.trim();
-
-      if (isNaN(cantidad) || cantidad <= 0) return alert("Cantidad inválida.");
-      if (!motivo) return alert("Escribe un motivo para la merma.");
-
-      const total = cantidad * productoActual.costo;
-
-     const fila = document.createElement("tr");
-fila.innerHTML = `
-  <td>${productoActual.descripcion}</td>
-  <td>${motivo}</td>
-  <td>${cantidad}</td>
-  <td>$${productoActual.costo.toFixed(2)}</td>
-  <td>$${total.toFixed(2)}</td>
-  <td><button onclick="eliminarFila(this)">❌</button></td>
-`;
-      cuerpoTabla.appendChild(fila);
-
-      actualizarTotalGeneral();
-      limpiarCampos();
+  document.getElementById("codigoInput").addEventListener("change", async () => {
+    let entrada = document.getElementById("codigoInput").value.trim();
+    if (entrada.includes(" - ")) {
+      entrada = entrada.split(" - ")[0];
     }
 
-    function actualizarTotalGeneral() {
-      let total = 0;
-      cuerpoTabla.querySelectorAll("tr").forEach(row => {
-        const valor = parseFloat(row.cells[4].textContent.replace('$', ''));
-        total += valor;
-      });
-      totalGeneralEl.textContent = `Total General: $${total.toFixed(2)}`;
-    }
+    const docSnap = await db.collection("productos").doc(entrada).get();
 
-    function limpiarCampos() {
-      document.getElementById("codigoInput").value = "";
-      document.getElementById("cantidadInput").value = "";
-      document.getElementById("motivoInput").value = "";
-      document.getElementById("descripcionProducto").textContent = "";
+    if (docSnap.exists) {
+      const data = docSnap.data();
+      productoActual = {
+        descripcion: data.Concepto,
+        costo: parseFloat(data["Costo sin Impuesto"]) || 0
+      };
+      document.getElementById("descripcionProducto").textContent =
+        `${productoActual.descripcion} | Costo: $${productoActual.costo.toFixed(2)}`;
+    } else {
       productoActual = null;
+      document.getElementById("descripcionProducto").textContent = "Producto no encontrado";
     }
-   window.eliminarFila = function (btn) {
-  const fila = btn.closest("tr");
-  fila.remove();
-  actualizarTotalGeneral();
-};
+  });
 
-    window.guardarMermas = async function () {
-      const rows = cuerpoTabla.querySelectorAll("tr");
-      if (rows.length === 0) {
-        alert("No hay mermas para guardar.");
-        return;
-      }
+  window.agregarMerma = function () {
+    if (!productoActual) return alert("Busca un producto válido primero.");
 
-      const sucursal = document.getElementById("sucursalInput").value.trim();
-      if (!sucursal) {
-        alert("Escribe la sucursal o bodega.");
-        return;
-      }
+    const cantidad = parseFloat(document.getElementById("cantidadInput").value);
+    const motivo = document.getElementById("motivoInput").value.trim();
 
-      const confirmacion = confirm("¿Deseas guardar todas las mermas en Firebase?");
-      if (!confirmacion) return;
+    if (isNaN(cantidad) || cantidad <= 0) return alert("Cantidad inválida.");
+    if (!motivo) return alert("Escribe un motivo para la merma.");
 
-      const ahora = new Date();
-      const folio = `MERMA-${ahora.getFullYear()}${(ahora.getMonth()+1).toString().padStart(2,'0')}${ahora.getDate().toString().padStart(2,'0')}-${ahora.getHours()}${ahora.getMinutes()}${ahora.getSeconds()}`;
+    const total = cantidad * productoActual.costo;
 
-      try {
-        for (let row of rows) {
-          const descripcion = row.cells[0].textContent;
-          const motivo = row.cells[1].textContent;
-          const cantidad = parseFloat(row.cells[2].textContent);
-          const costo = parseFloat(row.cells[3].textContent.replace('$', ''));
-          const total = parseFloat(row.cells[4].textContent.replace('$', ''));
+    const fila = document.createElement("tr");
+    fila.innerHTML = `
+      <td>${productoActual.descripcion}</td>
+      <td>${motivo}</td>
+      <td>${cantidad}</td>
+      <td>$${productoActual.costo.toFixed(2)}</td>
+      <td>$${total.toFixed(2)}</td>
+      <td><button onclick="eliminarFila(this)">❌</button></td>
+    `;
+    cuerpoTabla.appendChild(fila);
 
-          await addDoc(collection(db, "almacenes", "MERMA", "registros"), {
-            descripcion,
-            motivo,
-            cantidad,
-            costo_unitario: costo,
-            total,
-            sucursal,
-            folio,
-            fecha: serverTimestamp()
-          });
-        }
+    actualizarTotalGeneral();
+    limpiarCampos();
+  }
 
-        alert(`✅ Mermas guardadas exitosamente con folio: ${folio}`);
-        cuerpoTabla.innerHTML = "";
-        totalGeneralEl.textContent = "Total General: $0.00";
-        document.getElementById("sucursalInput").value = "";
+  function actualizarTotalGeneral() {
+    let total = 0;
+    cuerpoTabla.querySelectorAll("tr").forEach(row => {
+      const valor = parseFloat(row.cells[4].textContent.replace('$', ''));
+      total += valor;
+    });
+    totalGeneralEl.textContent = `Total General: $${total.toFixed(2)}`;
+  }
 
-      } catch (e) {
-        console.error("❌ Error al guardar:", e);
-        alert("Ocurrió un error al guardar en Firebase.");
-      }
+  function limpiarCampos() {
+    document.getElementById("codigoInput").value = "";
+    document.getElementById("cantidadInput").value = "";
+    document.getElementById("motivoInput").value = "";
+    document.getElementById("descripcionProducto").textContent = "";
+    productoActual = null;
+  }
+
+  window.eliminarFila = function (btn) {
+    const fila = btn.closest("tr");
+    fila.remove();
+    actualizarTotalGeneral();
+  };
+
+  window.vaciarTabla = function () {
+    if (confirm("¿Estás seguro de vaciar toda la tabla de merma?")) {
+      cuerpoTabla.innerHTML = "";
+      actualizarTotalGeneral();
     }
-  </script>
+  };
+
+  window.guardarMermas = async function () {
+    const rows = cuerpoTabla.querySelectorAll("tr");
+    if (rows.length === 0) {
+      alert("No hay mermas para guardar.");
+      return;
+    }
+
+    const sucursal = document.getElementById("sucursalInput").value.trim();
+    if (!sucursal) {
+      alert("Escribe la sucursal o bodega.");
+      return;
+    }
+
+    const confirmacion = confirm("¿Deseas guardar todas las mermas en Firebase?");
+    if (!confirmacion) return;
+
+    const ahora = new Date();
+    const folio = `MERMA-${ahora.getFullYear()}${(ahora.getMonth()+1).toString().padStart(2,'0')}${ahora.getDate().toString().padStart(2,'0')}-${ahora.getHours()}${ahora.getMinutes()}${ahora.getSeconds()}`;
+
+    try {
+      for (let row of rows) {
+        const descripcion = row.cells[0].textContent;
+        const motivo = row.cells[1].textContent;
+        const cantidad = parseFloat(row.cells[2].textContent);
+        const costo = parseFloat(row.cells[3].textContent.replace('$', ''));
+        const total = parseFloat(row.cells[4].textContent.replace('$', ''));
+
+        await db.collection("almacenes").doc("MERMA").collection("registros").add({
+          descripcion,
+          motivo,
+          cantidad,
+          costo_unitario: costo,
+          total,
+          sucursal,
+          folio,
+          fecha: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+
+      alert(`✅ Mermas guardadas exitosamente con folio: ${folio}`);
+      cuerpoTabla.innerHTML = "";
+      totalGeneralEl.textContent = "Total General: $0.00";
+      document.getElementById("sucursalInput").value = "";
+
+    } catch (e) {
+      console.error("❌ Error al guardar:", e);
+      alert("Ocurrió un error al guardar en Firebase.");
+    }
+  }
+</script>
 </body>
 </html>
