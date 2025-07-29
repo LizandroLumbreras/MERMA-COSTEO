@@ -140,12 +140,17 @@
       }
     });
 
-    sugerencias.slice(0, 10).forEach(item => {
-      const option = document.createElement("option");
-      option.value = `${item.codigo} - ${item.concepto}`;
-      sugerenciasEl.appendChild(option);
-    });
-  });
+   const yaAgregados = new Set();
+
+sugerencias.slice(0, 100).forEach(item => {
+  if (!yaAgregados.has(item.codigo)) {
+    yaAgregados.add(item.codigo);
+    const option = document.createElement("option");
+    option.value = `${item.codigo} - ${item.concepto}`;
+    sugerenciasEl.appendChild(option);
+  }
+});
+
 
   document.getElementById("codigoInput").addEventListener("change", async () => {
     let entrada = document.getElementById("codigoInput").value.trim();
