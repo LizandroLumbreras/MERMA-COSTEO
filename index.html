@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Costeo de Merma</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
   <style>
@@ -12,45 +12,77 @@
       padding: 20px;
       background: #f4f4f4;
     }
-    input, textarea, button {
-      display: block;
+
+    h2 {
+      text-align: center;
+    }
+
+    .input-box, table {
+      max-width: 800px;
+      margin: 20px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    input, textarea {
       width: 100%;
-      max-width: 480px;
-      margin: 10px auto;
-      padding: 12px;
+      padding: 10px;
+      margin: 10px 0;
       font-size: 16px;
     }
+
+    button {
+      padding: 10px 20px;
+      background-color: #e60000;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
     }
+
     th, td {
       border: 1px solid #ccc;
       padding: 8px;
-      text-align: center;
+      text-align: left;
+      vertical-align: top;
     }
+
     th {
-      background: #003366;
+      background-color: #003366;
       color: white;
     }
+
     #totalGeneral {
+      font-size: 20px;
+      text-align: right;
       margin-top: 20px;
-      font-size: 18px;
-      text-align: center;
+    }
+
+    .descripcion-box {
+      font-weight: bold;
+      color: #003366;
     }
   </style>
 </head>
 <body>
   <h2>📉 Costeo de Merma</h2>
 
-  <input list="sugerenciasProductos" id="codigoInput" placeholder="Buscar producto por código o nombre..." />
-  <datalist id="sugerenciasProductos"></datalist>
-  <div class="descripcion-box" id="descripcionProducto"></div>
-  <input type="number" id="cantidadInput" placeholder="Cantidad (piezas o kg)" />
-  <textarea id="motivoInput" placeholder="Motivo de la merma"></textarea>
-  <input type="text" id="sucursalInput" placeholder="Sucursal o Bodega" />
-  <button onclick="agregarMerma()">Agregar a la tabla</button>
+  <div class="input-box">
+    <input type="text" id="codigoInput" placeholder="Escanea o escribe el código de barras" />
+    <div class="descripcion-box" id="descripcionProducto"></div>
+    <input type="number" id="cantidadInput" placeholder="Cantidad (piezas o kg)" />
+    <textarea id="motivoInput" placeholder="Motivo de la merma"></textarea>
+    <input type="text" id="sucursalInput" placeholder="Sucursal o Bodega" />
+    <button onclick="agregarMerma()">Agregar a la tabla</button>
+  </div>
 
   <table id="tablaMerma">
     <thead>
@@ -60,7 +92,6 @@
         <th>Cantidad</th>
         <th>Costo Unitario</th>
         <th>Total</th>
-        <th>Acciones</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -69,7 +100,10 @@
   <div id="totalGeneral">Total General: $0.00</div>
   <button onclick="guardarMermas()">💾 Guardar mermas</button>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
       authDomain: "inventariopv-643f1.firebaseapp.com",
@@ -79,63 +113,34 @@
       appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
     };
 
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
     let productoActual = null;
     const cuerpoTabla = document.querySelector("#tablaMerma tbody");
     const totalGeneralEl = document.getElementById("totalGeneral");
-    const sugerenciasEl = document.getElementById("sugerenciasProductos");
 
-    // 🔍 BUSQUEDA
-    document.getElementById("codigoInput").addEventListener("input", async (e) => {
-      const entrada = e.target.value.trim().toLowerCase();
-      sugerenciasEl.innerHTML = "";
-
-      if (entrada.length < 2) return;
-
-      const snapshot = await db.collection("productos").get();
-      const sugerencias = [];
-      const yaAgregados = new Set();
-
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        const concepto = (data.Concepto || "").toLowerCase();
-        const codigo = docSnap.id;
-
-        if ((concepto.includes(entrada) || codigo.includes(entrada)) && !yaAgregados.has(codigo)) {
-          yaAgregados.add(codigo);
-          const option = document.createElement("option");
-          option.value = `${codigo} - ${data.Concepto}`;
-          sugerenciasEl.appendChild(option);
-        }
-      });
-    });
-
-    // ✅ CARGA DEL PRODUCTO
     document.getElementById("codigoInput").addEventListener("change", async () => {
-      let entrada = document.getElementById("codigoInput").value.trim();
-      if (entrada.includes(" - ")) {
-        entrada = entrada.split(" - ")[0];
-      }
+      const codigo = document.getElementById("codigoInput").value.trim();
+      if (!codigo) return;
 
-      const docSnap = await db.collection("productos").doc(entrada).get();
+      const docRef = doc(db, "productos", codigo);
+      const docSnap = await getDoc(docRef);
 
-      if (docSnap.exists) {
+      if (docSnap.exists()) {
         const data = docSnap.data();
         productoActual = {
           descripcion: data.Concepto,
           costo: parseFloat(data["Costo sin Impuesto"]) || 0
         };
         document.getElementById("descripcionProducto").textContent =
-          `${productoActual.descripcion} | Costo: $${productoActual.costo.toFixed(2)}`;
+          ${productoActual.descripcion} | Costo: $${productoActual.costo.toFixed(2)};
       } else {
         productoActual = null;
         document.getElementById("descripcionProducto").textContent = "Producto no encontrado";
       }
     });
 
-    // ➕ AGREGAR A LA TABLA
     window.agregarMerma = function () {
       if (!productoActual) return alert("Busca un producto válido primero.");
 
@@ -148,14 +153,13 @@
       const total = cantidad * productoActual.costo;
 
       const fila = document.createElement("tr");
-      fila.innerHTML = `
+      fila.innerHTML = 
         <td>${productoActual.descripcion}</td>
         <td>${motivo}</td>
         <td>${cantidad}</td>
         <td>$${productoActual.costo.toFixed(2)}</td>
         <td>$${total.toFixed(2)}</td>
-        <td><button onclick="eliminarFila(this)">❌</button></td>
-      `;
+      ;
       cuerpoTabla.appendChild(fila);
 
       actualizarTotalGeneral();
@@ -168,7 +172,7 @@
         const valor = parseFloat(row.cells[4].textContent.replace('$', ''));
         total += valor;
       });
-      totalGeneralEl.textContent = `Total General: $${total.toFixed(2)}`;
+      totalGeneralEl.textContent = Total General: $${total.toFixed(2)};
     }
 
     function limpiarCampos() {
@@ -179,13 +183,6 @@
       productoActual = null;
     }
 
-    window.eliminarFila = function (btn) {
-      const fila = btn.closest("tr");
-      fila.remove();
-      actualizarTotalGeneral();
-    };
-
-    // 💾 GUARDAR EN FIRESTORE
     window.guardarMermas = async function () {
       const rows = cuerpoTabla.querySelectorAll("tr");
       if (rows.length === 0) {
@@ -203,7 +200,7 @@
       if (!confirmacion) return;
 
       const ahora = new Date();
-      const folio = `MERMA-${ahora.getFullYear()}${(ahora.getMonth()+1).toString().padStart(2,'0')}${ahora.getDate().toString().padStart(2,'0')}-${ahora.getHours()}${ahora.getMinutes()}${ahora.getSeconds()}`;
+      const folio = MERMA-${ahora.getFullYear()}${(ahora.getMonth()+1).toString().padStart(2,'0')}${ahora.getDate().toString().padStart(2,'0')}-${ahora.getHours()}${ahora.getMinutes()}${ahora.getSeconds()};
 
       try {
         for (let row of rows) {
@@ -213,7 +210,7 @@
           const costo = parseFloat(row.cells[3].textContent.replace('$', ''));
           const total = parseFloat(row.cells[4].textContent.replace('$', ''));
 
-          await db.collection("almacenes").doc("MERMA").collection("registros").add({
+          await addDoc(collection(db, "almacenes", "MERMA", "registros"), {
             descripcion,
             motivo,
             cantidad,
@@ -221,11 +218,11 @@
             total,
             sucursal,
             folio,
-            fecha: firebase.firestore.FieldValue.serverTimestamp()
+            fecha: serverTimestamp()
           });
         }
 
-        alert(`✅ Mermas guardadas exitosamente con folio: ${folio}`);
+        alert(✅ Mermas guardadas exitosamente con folio: ${folio});
         cuerpoTabla.innerHTML = "";
         totalGeneralEl.textContent = "Total General: $0.00";
         document.getElementById("sucursalInput").value = "";
@@ -234,7 +231,7 @@
         console.error("❌ Error al guardar:", e);
         alert("Ocurrió un error al guardar en Firebase.");
       }
-    };
+    }
   </script>
 </body>
 </html>
