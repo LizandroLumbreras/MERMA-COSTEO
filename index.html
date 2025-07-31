@@ -134,7 +134,7 @@
           costo: parseFloat(data["Costo sin Impuesto"]) || 0
         };
         document.getElementById("descripcionProducto").textContent =
-          ${productoActual.descripcion} | Costo: $${productoActual.costo.toFixed(2)};
+          `${productoActual.descripcion} | Costo: $${productoActual.costo.toFixed(2)}`;
       } else {
         productoActual = null;
         document.getElementById("descripcionProducto").textContent = "Producto no encontrado";
@@ -153,13 +153,13 @@
       const total = cantidad * productoActual.costo;
 
       const fila = document.createElement("tr");
-      fila.innerHTML = 
+      fila.innerHTML = `
         <td>${productoActual.descripcion}</td>
         <td>${motivo}</td>
         <td>${cantidad}</td>
         <td>$${productoActual.costo.toFixed(2)}</td>
         <td>$${total.toFixed(2)}</td>
-      ;
+      `;
       cuerpoTabla.appendChild(fila);
 
       actualizarTotalGeneral();
@@ -172,7 +172,7 @@
         const valor = parseFloat(row.cells[4].textContent.replace('$', ''));
         total += valor;
       });
-      totalGeneralEl.textContent = Total General: $${total.toFixed(2)};
+      totalGeneralEl.textContent = `Total General: $${total.toFixed(2)}`;
     }
 
     function limpiarCampos() {
@@ -200,7 +200,7 @@
       if (!confirmacion) return;
 
       const ahora = new Date();
-      const folio = MERMA-${ahora.getFullYear()}${(ahora.getMonth()+1).toString().padStart(2,'0')}${ahora.getDate().toString().padStart(2,'0')}-${ahora.getHours()}${ahora.getMinutes()}${ahora.getSeconds()};
+      const folio = `MERMA-${ahora.getFullYear()}${(ahora.getMonth() + 1).toString().padStart(2, '0')}${ahora.getDate().toString().padStart(2, '0')}-${ahora.getHours()}${ahora.getMinutes()}${ahora.getSeconds()}`;
 
       try {
         for (let row of rows) {
@@ -222,7 +222,7 @@
           });
         }
 
-        alert(✅ Mermas guardadas exitosamente con folio: ${folio});
+        alert(`✅ Mermas guardadas exitosamente con folio: ${folio}`);
         cuerpoTabla.innerHTML = "";
         totalGeneralEl.textContent = "Total General: $0.00";
         document.getElementById("sucursalInput").value = "";
