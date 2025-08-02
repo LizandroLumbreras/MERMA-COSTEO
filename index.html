@@ -6,53 +6,105 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
   <style>
+    :root {
+      --principal: #e60000;
+      --texto: white;
+      --fondo: linear-gradient(to right, #00416A, #E4E5E6);
+      --sombra: rgba(0, 0, 0, 0.1);
+      --card-bg: rgba(255, 255, 255, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: var(--fondo);
+      color: var(--texto);
+      min-height: 100vh;
+      padding: 0 20px 40px;
+    }
+
+    .marca-agua {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.08;
+      z-index: 0;
+      max-width: 80%;
+      height: auto;
+      pointer-events: none;
+    }
+
+    header {
+      text-align: center;
       padding: 20px;
-      background: #f4f4f4;
+      background-color: rgba(255,255,255,0.1);
+      box-shadow: 0 2px 6px var(--sombra);
+      position: relative;
+      z-index: 2;
+    }
+
+    header img {
+      max-height: 100px;
+      height: auto;
     }
 
     h2 {
       text-align: center;
+      margin: 10px 0;
+      font-size: 26px;
     }
 
     .input-box, table {
-      max-width: 800px;
+      max-width: 900px;
       margin: 20px auto;
-      background: white;
+      background: rgba(255, 255, 255, 0.15);
       padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      box-shadow: 0 2px 6px var(--sombra);
     }
 
     input, textarea {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       margin: 10px 0;
       font-size: 16px;
+      border: none;
+      border-radius: 6px;
+    }
+
+    input:focus, textarea:focus {
+      outline: 2px solid #fff;
     }
 
     button {
       padding: 10px 20px;
-      background-color: #e60000;
+      background-color: var(--principal);
       color: white;
       border: none;
       cursor: pointer;
-      border-radius: 5px;
+      border-radius: 8px;
+      font-weight: bold;
+      box-shadow: 0 2px 4px var(--sombra);
       margin-top: 10px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
+      margin-top: 20px;
     }
 
     th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 10px;
       text-align: left;
-      vertical-align: top;
     }
 
     th {
@@ -60,20 +112,48 @@
       color: white;
     }
 
+    td {
+      color: white;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
     #totalGeneral {
       font-size: 20px;
       text-align: right;
       margin-top: 20px;
+      font-weight: bold;
     }
 
     .descripcion-box {
       font-weight: bold;
-      color: #003366;
+      color: #ffffff;
+      background-color: rgba(0,0,0,0.2);
+      padding: 10px;
+      border-radius: 6px;
+    }
+
+    footer {
+      width: 100%;
+      text-align: center;
+      font-size: 13px;
+      color: #fff;
+      background: #00416A;
+      padding: 15px 10px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      margin-top: 40px;
+    }
+
+    footer span {
+      font-weight: 600;
     }
   </style>
 </head>
 <body>
-  <h2>📉 Costeo de Merma</h2>
+  <img src="logo_proveedora.webp" class="marca-agua" alt="Marca de agua" loading="lazy" />
+  <header>
+    <img src="logo_proveedora.webp" alt="Logo La Proveedora" loading="lazy" />
+    <h2>📉 Costeo de Merma</h2>
+  </header>
 
   <div class="input-box">
     <input type="text" id="codigoInput" placeholder="Escanea o escribe el código de barras" />
@@ -81,7 +161,7 @@
     <input type="number" id="cantidadInput" placeholder="Cantidad (piezas o kg)" />
     <textarea id="motivoInput" placeholder="Motivo de la merma"></textarea>
     <input type="text" id="sucursalInput" placeholder="Sucursal o Bodega" />
-    <button onclick="agregarMerma()">Agregar a la tabla</button>
+    <button onclick="agregarMerma()">➕ Agregar a la tabla</button>
   </div>
 
   <table id="tablaMerma">
@@ -98,7 +178,13 @@
   </table>
 
   <div id="totalGeneral">Total General: $0.00</div>
-  <button onclick="guardarMermas()">💾 Guardar mermas</button>
+  <div style="text-align:center;">
+    <button onclick="guardarMermas()">💾 Guardar mermas</button>
+  </div>
+
+  <footer>
+    © 2025 <span>Panel de Herramientas La Proveedora</span> · Desarrollado por Lizandro Sustaita
+  </footer>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -233,5 +319,8 @@
       }
     }
   </script>
+  <footer>
+    © 2025 <span>Panel de Herramientas La Proveedora</span> · Desarrollado por Lizandro Sustaita
+  </footer>
 </body>
 </html>
