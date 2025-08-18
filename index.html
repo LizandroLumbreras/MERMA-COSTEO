@@ -4,155 +4,39 @@
   <meta charset="UTF-8" />
   <title>Costeo de Merma</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase 10 (modular) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --principal: #e60000;
-      --texto: white;
-      --fondo: linear-gradient(to right, #00416A, #E4E5E6);
-      --sombra: rgba(0, 0, 0, 0.1);
-      --card-bg: rgba(255, 255, 255, 0.15);
+    :root{
+      --principal:#e60000; --texto:white;
+      --fondo:linear-gradient(to right,#00416A,#E4E5E6);
+      --sombra:rgba(0,0,0,.1); --card-bg:rgba(255,255,255,.15)
     }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      font-family: 'Poppins', sans-serif;
-      background: var(--fondo);
-      color: var(--texto);
-      min-height: 100vh;
-      padding: 0 20px 40px;
-    }
-
-    .marca-agua {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      opacity: 0.08;
-      z-index: 0;
-      max-width: 80%;
-      height: auto;
-      pointer-events: none;
-    }
-
-    header {
-      text-align: center;
-      padding: 20px;
-      background-color: rgba(255,255,255,0.1);
-      box-shadow: 0 2px 6px var(--sombra);
-      position: relative;
-      z-index: 2;
-    }
-
-    header img {
-      max-height: 100px;
-      height: auto;
-    }
-
-    h2 {
-      text-align: center;
-      margin: 10px 0;
-      font-size: 26px;
-    }
-
-    .input-box, table {
-      max-width: 900px;
-      margin: 20px auto;
-      background: rgba(255, 255, 255, 0.15);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px var(--sombra);
-    }
-
-    input, textarea {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
-    }
-
-    input:focus, textarea:focus {
-      outline: 2px solid #fff;
-    }
-
-    button {
-      padding: 10px 20px;
-      background-color: var(--principal);
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 8px;
-      font-weight: bold;
-      box-shadow: 0 2px 4px var(--sombra);
-      margin-top: 10px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-
-    th, td {
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 10px;
-      text-align: left;
-    }
-
-    th {
-      background-color: #003366;
-      color: white;
-    }
-
-    td {
-      color: white;
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    #totalGeneral {
-      font-size: 20px;
-      text-align: right;
-      margin-top: 20px;
-      font-weight: bold;
-    }
-
-    .descripcion-box {
-      font-weight: bold;
-      color: #ffffff;
-      background-color: rgba(0,0,0,0.2);
-      padding: 10px;
-      border-radius: 6px;
-    }
-
-    footer {
-      width: 100%;
-      text-align: center;
-      font-size: 13px;
-      color: #fff;
-      background: #00416A;
-      padding: 15px 10px;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      margin-top: 40px;
-    }
-
-    footer span {
-      font-weight: 600;
-    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Poppins',sans-serif;background:var(--fondo);color:var(--texto);min-height:100vh;padding:0 20px 40px}
+    .marca-agua{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.08;z-index:0;max-width:80%;pointer-events:none}
+    header{text-align:center;padding:20px;background:rgba(255,255,255,.1);box-shadow:0 2px 6px var(--sombra);position:relative;z-index:2}
+    h2{text-align:center;margin:10px 0;font-size:26px}
+    .input-box,table{max-width:900px;margin:20px auto;background:rgba(255,255,255,.15);padding:20px;border-radius:12px;box-shadow:0 2px 6px var(--sombra)}
+    input,textarea{width:100%;padding:12px;margin:10px 0;font-size:16px;border:none;border-radius:6px}
+    input:focus,textarea:focus{outline:2px solid #fff}
+    button{padding:10px 20px;background:var(--principal);color:white;border:none;cursor:pointer;border-radius:8px;font-weight:bold;box-shadow:0 2px 4px var(--sombra);margin-top:10px}
+    table{width:100%;border-collapse:collapse;margin-top:20px}
+    th,td{border:1px solid rgba(255,255,255,.3);padding:10px;text-align:left}
+    th{background:#003366;color:white}
+    td{color:white;background:rgba(255,255,255,.05)}
+    #totalGeneral{font-size:20px;text-align:right;margin-top:20px;font-weight:bold}
+    .descripcion-box{font-weight:bold;color:#fff;background:rgba(0,0,0,.2);padding:10px;border-radius:6px;min-height:44px;display:flex;align-items:center}
+    footer{width:100%;text-align:center;font-size:13px;color:#fff;background:#00416A;padding:15px 10px;border-top:1px solid rgba(255,255,255,.1);margin-top:40px}
+    footer span{font-weight:600}
   </style>
 </head>
 <body>
   <img src="logo_proveedora.webp" class="marca-agua" alt="Marca de agua" loading="lazy" />
-  <header>
-    <h2>📉 Costeo de Merma</h2>
-  </header>
+  <header><h2>📉 Costeo de Merma</h2></header>
 
   <div class="input-box">
     <input type="text" id="codigoInput" placeholder="Escanea o escribe el código de barras" />
@@ -160,7 +44,7 @@
     <input type="number" id="cantidadInput" placeholder="Cantidad (piezas o kg)" />
     <textarea id="motivoInput" placeholder="Motivo de la merma"></textarea>
     <input type="text" id="sucursalInput" placeholder="Sucursal o Bodega" />
-    <button onclick="agregarMerma()">➕ Agregar a la tabla</button>
+    <button id="btnAgregar">➕ Agregar a la tabla</button>
   </div>
 
   <table id="tablaMerma">
@@ -178,17 +62,21 @@
 
   <div id="totalGeneral">Total General: $0.00</div>
   <div style="text-align:center;">
-    <button onclick="guardarMermas()">💾 Guardar mermas</button>
+    <button id="btnGuardar">💾 Guardar mermas</button>
   </div>
 
-  <footer>
-    © 2025 <span>Panel de Herramientas La Proveedora</span> · Desarrollado por Lizandro Sustaita
-  </footer>
+  <footer>© 2025 <span>Panel de Herramientas La Proveedora</span> · Desarrollado por Lizandro Sustaita</footer>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, doc, getDoc, collection, addDoc,
+      serverTimestamp, query, where, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    // ── Firebase ────────────────────────────────────────────────────────────
     const firebaseConfig = {
       apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
       authDomain: "inventariopv-643f1.firebaseapp.com",
@@ -197,43 +85,90 @@
       messagingSenderId: "96242533231",
       appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
     };
-
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const db  = getFirestore(app);
 
+    // ── Estado/UI ───────────────────────────────────────────────────────────
     let productoActual = null;
-    const cuerpoTabla = document.querySelector("#tablaMerma tbody");
-    const totalGeneralEl = document.getElementById("totalGeneral");
+    const cuerpoTabla   = document.querySelector("#tablaMerma tbody");
+    const totalGeneralEl= document.getElementById("totalGeneral");
+    const descEl        = document.getElementById("descripcionProducto");
+    const codigoEl      = document.getElementById("codigoInput");
 
-    document.getElementById("codigoInput").addEventListener("change", async () => {
-      const codigo = document.getElementById("codigoInput").value.trim();
-      if (!codigo) return;
+    // Buscar al presionar Enter o al perder foco
+    codigoEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter"){ e.preventDefault(); buscarYMostrar(); }});
+    codigoEl.addEventListener("change", buscarYMostrar);
+    document.getElementById("btnAgregar").addEventListener("click", agregarMerma);
+    document.getElementById("btnGuardar").addEventListener("click", guardarMermas);
 
-      const docRef = doc(db, "productos", codigo);
-      const docSnap = await getDoc(docRef);
+    // ── Buscador corregido ─────────────────────────────────────────────────
+    async function buscarYMostrar(){
+      const codigo = codigoEl.value.trim();
+      if(!codigo){ return; }
 
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        productoActual = {
-          descripcion: data.Concepto,
-          costo: parseFloat(data["Costo sin Impuesto"]) || 0
-        };
-        document.getElementById("descripcionProducto").textContent =
-          `${productoActual.descripcion} | Costo: $${productoActual.costo.toFixed(2)}`;
-      } else {
+      const prod = await buscarProductoPorCodigo(codigo);
+
+      if(prod){
+        productoActual = prod;
+        descEl.textContent = `${prod.descripcion} | Costo: $${prod.costo.toFixed(2)}`;
+      }else{
         productoActual = null;
-        document.getElementById("descripcionProducto").textContent = "Producto no encontrado";
+        descEl.textContent = "❌ Producto no encontrado";
       }
-    });
+    }
 
-    window.agregarMerma = function () {
-      if (!productoActual) return alert("Busca un producto válido primero.");
+    /**
+     * Busca el producto:
+     * 1) por ID del documento (por si algunos están creados así)
+     * 2) por campo codigoBarra (y variantes comunes)
+     * Retorna { descripcion, costo } o null
+     */
+    async function buscarProductoPorCodigo(codigo){
+      // 1) Intento directo por ID
+      try{
+        const byId = await getDoc(doc(db, "productos", codigo));
+        if(byId.exists()){
+          const d = byId.data();
+          return mapProducto(d);
+        }
+      }catch(_){} // si falla, seguimos
+
+      // 2) Intento por campo (variantes típicas)
+      const variantes = ["codigoBarra","CodigoBarra","Codigo Barra","Codigo de barras","codigo_barras"];
+      for(const campo of variantes){
+        const q = query(collection(db,"productos"), where(campo,"==", codigo));
+        const snap = await getDocs(q);
+        if(!snap.empty){
+          const d = snap.docs[0].data();
+          return mapProducto(d);
+        }
+      }
+      return null;
+    }
+
+    // Mapea distintos esquemas de nombres hacia lo que necesitamos
+    function mapProducto(d){
+      // descripción
+      const descripcion =
+        d.concepto ?? d.Concepto ?? d.descripcion ?? d.Descripcion ?? "SIN DESCRIPCIÓN";
+
+      // costo: preferimos costoSinImpuesto (como en tu captura)
+      const costoBruto =
+        d.costoSinImpuesto ?? d["Costo sin Impuesto"] ?? d.costo ?? d.costoUnitario ?? d.costo_unitario ?? 0;
+
+      const costo = Number.parseFloat(costoBruto) || 0;
+      return { descripcion, costo };
+    }
+
+    // ── Tabla/Guardar ──────────────────────────────────────────────────────
+    function agregarMerma(){
+      if(!productoActual){ return alert("Busca un producto válido primero."); }
 
       const cantidad = parseFloat(document.getElementById("cantidadInput").value);
-      const motivo = document.getElementById("motivoInput").value.trim();
+      const motivo   = document.getElementById("motivoInput").value.trim();
 
-      if (isNaN(cantidad) || cantidad <= 0) return alert("Cantidad inválida.");
-      if (!motivo) return alert("Escribe un motivo para la merma.");
+      if(isNaN(cantidad) || cantidad<=0) return alert("Cantidad inválida.");
+      if(!motivo) return alert("Escribe un motivo para la merma.");
 
       const total = cantidad * productoActual.costo;
 
@@ -251,70 +186,57 @@
       limpiarCampos();
     }
 
-    function actualizarTotalGeneral() {
-      let total = 0;
-      cuerpoTabla.querySelectorAll("tr").forEach(row => {
-        const valor = parseFloat(row.cells[4].textContent.replace('$', ''));
-        total += valor;
+    function actualizarTotalGeneral(){
+      let total=0;
+      cuerpoTabla.querySelectorAll("tr").forEach(row=>{
+        const v = parseFloat(row.cells[4].textContent.replace('$',''));
+        total += (isNaN(v)?0:v);
       });
       totalGeneralEl.textContent = `Total General: $${total.toFixed(2)}`;
     }
 
-    function limpiarCampos() {
-      document.getElementById("codigoInput").value = "";
+    function limpiarCampos(){
+      codigoEl.value = "";
       document.getElementById("cantidadInput").value = "";
-      document.getElementById("motivoInput").value = "";
-      document.getElementById("descripcionProducto").textContent = "";
+      document.getElementById("motivoInput").value   = "";
+      descEl.textContent = "";
       productoActual = null;
+      codigoEl.focus();
     }
 
-    window.guardarMermas = async function () {
+    async function guardarMermas(){
       const rows = cuerpoTabla.querySelectorAll("tr");
-      if (rows.length === 0) {
-        alert("No hay mermas para guardar.");
-        return;
-      }
+      if(rows.length===0) return alert("No hay mermas para guardar.");
 
       const sucursal = document.getElementById("sucursalInput").value.trim();
-      if (!sucursal) {
-        alert("Escribe la sucursal o bodega.");
-        return;
-      }
+      if(!sucursal) return alert("Escribe la sucursal o bodega.");
 
-      const confirmacion = confirm("¿Deseas guardar todas las mermas en Firebase?");
-      if (!confirmacion) return;
+      if(!confirm("¿Deseas guardar todas las mermas en Firebase?")) return;
 
       const ahora = new Date();
-      const folio = `MERMA-${ahora.getFullYear()}${(ahora.getMonth() + 1).toString().padStart(2, '0')}${ahora.getDate().toString().padStart(2, '0')}-${ahora.getHours()}${ahora.getMinutes()}${ahora.getSeconds()}`;
+      const folio = `MERMA-${ahora.getFullYear()}${String(ahora.getMonth()+1).padStart(2,'0')}${String(ahora.getDate()).padStart(2,'0')}-${String(ahora.getHours()).padStart(2,'0')}${String(ahora.getMinutes()).padStart(2,'0')}${String(ahora.getSeconds()).padStart(2,'0')}`;
 
-      try {
-        for (let row of rows) {
+      try{
+        for(const row of rows){
           const descripcion = row.cells[0].textContent;
-          const motivo = row.cells[1].textContent;
-          const cantidad = parseFloat(row.cells[2].textContent);
-          const costo = parseFloat(row.cells[3].textContent.replace('$', ''));
-          const total = parseFloat(row.cells[4].textContent.replace('$', ''));
+          const motivo      = row.cells[1].textContent;
+          const cantidad    = parseFloat(row.cells[2].textContent);
+          const costo       = parseFloat(row.cells[3].textContent.replace('$',''));
+          const total       = parseFloat(row.cells[4].textContent.replace('$',''));
 
-          await addDoc(collection(db, "almacenes", "MERMA", "registros"), {
-            descripcion,
-            motivo,
-            cantidad,
-            costo_unitario: costo,
-            total,
-            sucursal,
-            folio,
+          await addDoc(collection(db,"almacenes","MERMA","registros"),{
+            descripcion, motivo, cantidad,
+            costo_unitario:costo, total, sucursal, folio,
             fecha: serverTimestamp()
           });
         }
-
-        alert(`✅ Mermas guardadas exitosamente con folio: ${folio}`);
+        alert(`✅ Mermas guardadas con folio: ${folio}`);
         cuerpoTabla.innerHTML = "";
         totalGeneralEl.textContent = "Total General: $0.00";
         document.getElementById("sucursalInput").value = "";
-
-      } catch (e) {
-        console.error("❌ Error al guardar:", e);
-        alert("Ocurrió un error al guardar en Firebase.");
+      }catch(e){
+        console.error("Error al guardar:", e);
+        alert("❌ Ocurrió un error al guardar en Firebase.");
       }
     }
   </script>
