@@ -68,6 +68,7 @@
   <footer>© 2025 <span>Panel de Herramientas La Proveedora</span> · Desarrollado por Lizandro Sustaita</footer>
 
   <script type="module">
+    let mermasCapturadas = [];
     import {
       initializeApp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -172,6 +173,15 @@
 
       const total = cantidad * productoActual.costo;
 
+// ⬇️ Guardar merma para auditoría
+mermasCapturadas.push({
+  descripcion: productoActual.descripcion,
+  motivo,
+  cantidad,
+  costo_unitario: productoActual.costo,
+  total
+});
+
       const fila = document.createElement("tr");
       fila.innerHTML = `
         <td>${productoActual.descripcion}</td>
@@ -204,41 +214,43 @@
       codigoEl.focus();
     }
 
-    async function guardarMermas(){
-      const rows = cuerpoTabla.querySelectorAll("tr");
-      if(rows.length===0) return alert("No hay mermas para guardar.");
+async function guardarMermas(){
+  if(mermasCapturadas.length === 0){
+    return alert("No hay mermas para guardar.");
+  }
 
-      const sucursal = document.getElementById("sucursalInput").value.trim();
-      if(!sucursal) return alert("Escribe la sucursal o bodega.");
+  const sucursal = document.getElementById("sucursalInput").value.trim();
+  if(!sucursal) return alert("Escribe la sucursal o bodega.");
 
-      if(!confirm("¿Deseas guardar todas las mermas en Firebase?")) return;
+  if(!confirm("¿Deseas guardar todas las mermas?")) return;
 
-      const ahora = new Date();
-      const folio = `MERMA-${ahora.getFullYear()}${String(ahora.getMonth()+1).padStart(2,'0')}${String(ahora.getDate()).padStart(2,'0')}-${String(ahora.getHours()).padStart(2,'0')}${String(ahora.getMinutes()).padStart(2,'0')}${String(ahora.getSeconds()).padStart(2,'0')}`;
+  const ahora = new Date();
+  const folio = `MERMA-${ahora.getFullYear()}${String(ahora.getMonth()+1).padStart(2,'0')}${String(ahora.getDate()).padStart(2,'0')}-${String(ahora.getHours()).padStart(2,'0')}${String(ahora.getMinutes()).padStart(2,'0')}${String(ahora.getSeconds()).padStart(2,'0')}`;
 
-      try{
-        for(const row of rows){
-          const descripcion = row.cells[0].textContent;
-          const motivo      = row.cells[1].textContent;
-          const cantidad    = parseFloat(row.cells[2].textContent);
-          const costo       = parseFloat(row.cells[3].textContent.replace('$',''));
-          const total       = parseFloat(row.cells[4].textContent.replace('$',''));
-
-          await addDoc(collection(db,"almacenes","MERMA","registros"),{
-            descripcion, motivo, cantidad,
-            costo_unitario:costo, total, sucursal, folio,
-            fecha: serverTimestamp()
-          });
-        }
-        alert(`✅ Mermas guardadas con folio: ${folio}`);
-        cuerpoTabla.innerHTML = "";
-        totalGeneralEl.textContent = "Total General: $0.00";
-        document.getElementById("sucursalInput").value = "";
-      }catch(e){
-        console.error("Error al guardar:", e);
-        alert("❌ Ocurrió un error al guardar en Firebase.");
-      }
+  try{
+    // 🔹 Guardar en Firebase
+    for(const m of mermasCapturadas){
+      await addDoc(collection(db,"almacenes","MERMA","registros"),{
+        ...m,
+        sucursal,
+        folio,
+        fecha: serverTimestamp()
+      });
     }
+
+    // 🔹 Guardar en auditoría
+    localStorage.setItem("aud_mermas", JSON.stringify(mermasCapturadas));
+
+    alert(`✅ Mermas guardadas con folio: ${folio}`);
+
+    // 🔹 Regresar al flujo de auditoría
+    window.location.href = "incidencias.html";
+
+  }catch(e){
+    console.error(e);
+    alert("❌ Error al guardar las mermas.");
+  }
+}
   </script>
 </body>
 </html>
