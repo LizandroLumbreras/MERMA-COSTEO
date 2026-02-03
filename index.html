@@ -38,14 +38,25 @@
   <img src="logo_proveedora.webp" class="marca-agua" alt="Marca de agua" loading="lazy" />
   <header><h2>📉 Costeo de Merma</h2></header>
 
-  <div class="input-box">
-    <input type="text" id="codigoInput" placeholder="Escanea o escribe el código de barras" />
-    <div class="descripcion-box" id="descripcionProducto"></div>
-    <input type="number" id="cantidadInput" placeholder="Cantidad (piezas o kg)" />
-    <textarea id="motivoInput" placeholder="Motivo de la merma"></textarea>
-    <input type="text" id="sucursalInput" placeholder="Sucursal o Bodega" />
-    <button id="btnAgregar">➕ Agregar a la tabla</button>
-  </div>
+<div class="input-box">
+  <input type="text" id="codigoInput" placeholder="Escanea o escribe el código de barras" />
+
+  <div id="sugerencias" style="
+  background:white;
+  color:black;
+  border-radius:6px;
+  max-height:220px;
+  overflow-y:auto;
+  display:none;
+  margin-top:-8px;
+"></div>
+
+  <div class="descripcion-box" id="descripcionProducto"></div>
+  <input type="number" id="cantidadInput" placeholder="Cantidad (piezas o kg)" />
+  <textarea id="motivoInput" placeholder="Motivo de la merma"></textarea>
+  <input type="text" id="sucursalInput" placeholder="Sucursal o Bodega" />
+  <button id="btnAgregar">➕ Agregar a la tabla</button>
+</div>
 
   <table id="tablaMerma">
     <thead>
@@ -68,6 +79,8 @@
   <footer>© 2025 <span>Panel de Herramientas La Proveedora</span> · Desarrollado por Lizandro Sustaita</footer>
 
   <script type="module">
+    let timeoutBusqueda = null;
+    const sugerenciasEl = document.getElementById("sugerencias");
     let mermasCapturadas = [];
     import {
       initializeApp
@@ -97,10 +110,74 @@
     const codigoEl      = document.getElementById("codigoInput");
 
     // Buscar al presionar Enter o al perder foco
-    codigoEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter"){ e.preventDefault(); buscarYMostrar(); }});
-    codigoEl.addEventListener("change", buscarYMostrar);
+   codigoEl.addEventListener("input", manejarBusqueda);
+codigoEl.addEventListener("keydown", e => {
+  if(e.key === "Enter"){
+    e.preventDefault();
+    if(sugerenciasEl.firstChild){
+      sugerenciasEl.firstChild.click();
+    }else{
+      buscarYMostrar(); // fallback código de barras
+    }
+  }
+});
     document.getElementById("btnAgregar").addEventListener("click", agregarMerma);
     document.getElementById("btnGuardar").addEventListener("click", guardarMermas);
+async function manejarBusqueda(){
+  const texto = codigoEl.value.trim();
+  sugerenciasEl.innerHTML = "";
+  sugerenciasEl.style.display = "none";
+
+  if(texto.length < 2) return;
+
+  clearTimeout(timeoutBusqueda);
+  timeoutBusqueda = setTimeout(async ()=>{
+    // primero intenta como código
+    const porCodigo = await buscarProductoPorCodigo(texto);
+    if(porCodigo){
+      productoActual = porCodigo;
+      descEl.textContent = `${porCodigo.descripcion} | Costo: $${porCodigo.costo.toFixed(2)}`;
+      return;
+    }
+
+    // si no es código, buscar por descripción
+    buscarPorTexto(texto);
+  }, 300);
+}
+async function buscarPorTexto(texto){
+  const q = query(
+    collection(db,"productos"),
+    where("descripcion", ">=", texto.toUpperCase()),
+    where("descripcion", "<=", texto.toUpperCase() + "\uf8ff")
+  );
+
+  const snap = await getDocs(q);
+  if(snap.empty) return;
+
+  sugerenciasEl.style.display = "block";
+  sugerenciasEl.innerHTML = "";
+
+  snap.docs.slice(0,8).forEach(docSnap=>{
+    const d = docSnap.data();
+    const prod = { ...mapProducto(d), id: docSnap.id };
+
+    const div = document.createElement("div");
+    div.textContent = `${prod.descripcion} – $${prod.costo.toFixed(2)}`;
+    div.style.padding = "8px";
+    div.style.cursor = "pointer";
+    div.style.borderBottom = "1px solid #ddd";
+
+    div.onclick = ()=>{
+      productoActual = prod;
+      codigoEl.value = prod.descripcion;
+      codigoEl.dataset.idProducto = prod.id;
+      descEl.textContent = `${prod.descripcion} | Costo: $${prod.costo.toFixed(2)}`;
+      sugerenciasEl.style.display = "none";
+    };
+
+    sugerenciasEl.appendChild(div);
+  });
+}
 
     // ── Buscador corregido ─────────────────────────────────────────────────
     async function buscarYMostrar(){
@@ -205,14 +282,19 @@ mermasCapturadas.push({
       totalGeneralEl.textContent = `Total General: $${total.toFixed(2)}`;
     }
 
-    function limpiarCampos(){
-      codigoEl.value = "";
-      document.getElementById("cantidadInput").value = "";
-      document.getElementById("motivoInput").value   = "";
-      descEl.textContent = "";
-      productoActual = null;
-      codigoEl.focus();
-    }
+function limpiarCampos(){
+  codigoEl.value = "";
+  document.getElementById("cantidadInput").value = "";
+  document.getElementById("motivoInput").value   = "";
+  descEl.textContent = "";
+  productoActual = null;
+
+  sugerenciasEl.style.display = "none";
+  sugerenciasEl.innerHTML = "";
+
+  codigoEl.focus();
+}
+
 
 async function guardarMermas(){
   if(mermasCapturadas.length === 0){
