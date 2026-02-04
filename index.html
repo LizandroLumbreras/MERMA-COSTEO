@@ -99,7 +99,7 @@
 import {
   getFirestore, doc, getDoc, collection, addDoc,
   serverTimestamp, query, where, getDocs, limit,
-  orderBy, startAfter
+  orderBy, startAfter, documentId
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 
@@ -134,19 +134,22 @@ async function cargarCatalogoProductos(){
     catalogo = [];
     catalogoListo = false;
 
+    sugerenciasEl.style.display = "block";
+    sugerenciasEl.innerHTML = "<div style='padding:10px'>⏳ Cargando catálogo...</div>";
+
     let last = null;
 
     while(true){
       let q = query(
         collection(db,"productos"),
-        orderBy("__name__"),
+        orderBy(documentId()),
         limit(1000)
       );
 
       if(last){
         q = query(
           collection(db,"productos"),
-          orderBy("__name__"),
+          orderBy(documentId()),
           startAfter(last),
           limit(1000)
         );
@@ -157,33 +160,43 @@ async function cargarCatalogoProductos(){
 
       snap.forEach(ds=>{
         const d = ds.data();
-        const concepto = d.concepto ?? d.Concepto ?? d.descripcion ?? d.Descripcion ?? "";
-        const codigoBarra = d.codigoBarra ?? d.CodigoBarra ?? d.codigo_barras ?? "";
-        const costo = Number(d.costoSinImpuesto ?? d["Costo sin Impuesto"] ?? d.costo ?? 0) || 0;
+        const concepto = d.concepto ?? d.descripcion ?? "";
+        const codigoBarra = (d.codigoBarra ?? "").toString();
+        const costo = Number(d.costoSinImpuesto ?? d.costo ?? 0) || 0;
 
         catalogo.push({
           id: ds.id,
           concepto,
           concepto_norm: normalizarTexto(concepto),
-          codigoBarra: (codigoBarra || "").toString(),
+          codigoBarra: codigoBarra.trim(),
           costoSinImpuesto: costo
         });
       });
 
       last = snap.docs[snap.docs.length - 1];
-
       if(snap.size < 1000) break;
     }
 
     catalogoListo = true;
-    console.log("✅ Catálogo cargado COMPLETO:", catalogo.length);
+    sugerenciasEl.style.display = "none";
+    sugerenciasEl.innerHTML = "";
+
+    console.log("✅ Catálogo cargado:", catalogo.length);
 
   }catch(e){
     console.error("❌ Error cargando catálogo:", e);
+
     catalogoListo = false;
+    sugerenciasEl.style.display = "block";
+    sugerenciasEl.innerHTML =
+      "<div style='padding:10px;color:#b00020;font-weight:600'>" +
+      "❌ No se pudo cargar el catálogo.<br>" +
+      "Revisa permisos de Firestore (rules) o login." +
+      "</div>";
   }
 }
-    // ── Estado/UI ───────────────────────────────────────────────────────────
+
+  // ── Estado/UI ───────────────────────────────────────────────────────────
     let productoActual = null;
     const cuerpoTabla   = document.querySelector("#tablaMerma tbody");
     const totalGeneralEl= document.getElementById("totalGeneral");
