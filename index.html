@@ -144,12 +144,15 @@ async function manejarBusqueda(){
 async function buscarPorTexto(texto){
   const q = query(
     collection(db,"productos"),
-    where("descripcion", ">=", texto.toUpperCase()),
-    where("descripcion", "<=", texto.toUpperCase() + "\uf8ff")
+    where("descripcion", ">=", texto),
+    where("descripcion", "<=", texto + "\uf8ff")
   );
 
   const snap = await getDocs(q);
-  if(snap.empty) return;
+  if(snap.empty){
+    console.log("❌ No se encontraron coincidencias para:", texto);
+    return;
+  }
 
   sugerenciasEl.style.display = "block";
   sugerenciasEl.innerHTML = "";
@@ -167,7 +170,6 @@ async function buscarPorTexto(texto){
     div.onclick = ()=>{
       productoActual = prod;
       codigoEl.value = prod.descripcion;
-      codigoEl.dataset.idProducto = prod.id;
       descEl.textContent = `${prod.descripcion} | Costo: $${prod.costo.toFixed(2)}`;
       sugerenciasEl.style.display = "none";
     };
