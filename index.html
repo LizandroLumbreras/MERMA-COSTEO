@@ -25,6 +25,7 @@
   border-radius:12px;
   box-shadow:0 2px 6px var(--sombra);
   position:relative; /* 👈 IMPORTANTE */
+  z-index:50;
 }
     input,textarea{width:100%;padding:12px;margin:10px 0;font-size:16px;border:none;border-radius:6px}
     input:focus,textarea:focus{outline:2px solid #fff}
@@ -46,14 +47,19 @@
 <div class="input-box">
   <input type="text" id="codigoInput" placeholder="Escanea o escribe el código de barras" />
 
-  <div id="sugerencias" style="
+<div id="sugerencias" style="
   background:white;
   color:black;
   border-radius:6px;
   max-height:220px;
   overflow-y:auto;
   display:none;
-  margin-top:-8px;
+  position:absolute;
+  z-index:9999;
+  width:calc(100% - 40px);
+  left:20px;
+  top:60px;
+  box-shadow:0 10px 24px rgba(0,0,0,.25);
 "></div>
 
   <div class="descripcion-box" id="descripcionProducto"></div>
@@ -133,14 +139,14 @@ async function cargarCatalogoProductos(){
     while(true){
       let q = query(
         collection(db,"productos"),
-        orderBy("concepto"),
+        orderBy("__name__"),
         limit(1000)
       );
 
       if(last){
         q = query(
           collection(db,"productos"),
-          orderBy("concepto"),
+          orderBy("__name__"),
           startAfter(last),
           limit(1000)
         );
@@ -177,15 +183,20 @@ async function cargarCatalogoProductos(){
     catalogoListo = false;
   }
 }
-// Cargar catálogo al iniciar
-cargarCatalogoProductos();
-
     // ── Estado/UI ───────────────────────────────────────────────────────────
     let productoActual = null;
     const cuerpoTabla   = document.querySelector("#tablaMerma tbody");
     const totalGeneralEl= document.getElementById("totalGeneral");
     const descEl        = document.getElementById("descripcionProducto");
     const codigoEl      = document.getElementById("codigoInput");
+
+    // Cerrar sugerencias al hacer click fuera
+document.addEventListener("click", (e)=>{
+  if(!sugerenciasEl.contains(e.target) && e.target !== codigoEl){
+    sugerenciasEl.style.display = "none";
+  }
+});
+
 
     // Buscar al presionar Enter o al perder foco
    codigoEl.addEventListener("input", manejarBusqueda);
@@ -309,7 +320,8 @@ function buscarPorTexto(texto){
     async function buscarProductoPorCodigo(codigo){
       // 0) Intento local (si el catálogo ya está cargado)
 if(catalogoListo){
-  const hit = catalogo.find(p => p.codigoBarra === codigo);
+  const cod = (codigo || "").toString().trim();
+const hit = catalogo.find(p => (p.codigoBarra || "").toString().trim() === cod);
   if(hit){
     return { descripcion: hit.concepto, costo: hit.costoSinImpuesto, id: hit.id };
   }
