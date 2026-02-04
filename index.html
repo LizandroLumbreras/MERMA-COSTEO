@@ -17,7 +17,15 @@
     .marca-agua{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.08;z-index:0;max-width:80%;pointer-events:none}
     header{text-align:center;padding:20px;background:rgba(255,255,255,.1);box-shadow:0 2px 6px var(--sombra);position:relative;z-index:2}
     h2{text-align:center;margin:10px 0;font-size:26px}
-    .input-box,table{max-width:900px;margin:20px auto;background:rgba(255,255,255,.15);padding:20px;border-radius:12px;box-shadow:0 2px 6px var(--sombra)}
+   .input-box,table{
+  max-width:900px;
+  margin:20px auto;
+  background:rgba(255,255,255,.15);
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 2px 6px var(--sombra);
+  position:relative; /* 👈 IMPORTANTE */
+}
     input,textarea{width:100%;padding:12px;margin:10px 0;font-size:16px;border:none;border-radius:6px}
     input:focus,textarea:focus{outline:2px solid #fff}
     button{padding:10px 20px;background:var(--principal);color:white;border:none;cursor:pointer;border-radius:8px;font-weight:bold;box-shadow:0 2px 4px var(--sombra);margin-top:10px}
@@ -82,10 +90,12 @@
     import {
       initializeApp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, doc, getDoc, collection, addDoc,
-      serverTimestamp, query, where, getDocs
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getFirestore, doc, getDoc, collection, addDoc,
+  serverTimestamp, query, where, getDocs, limit,
+  orderBy, startAfter
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 
     // ── Firebase ────────────────────────────────────────────────────────────
     const firebaseConfig = {
@@ -98,6 +108,77 @@
     };
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
+    // ── Catálogo en memoria (búsqueda local) ──────────────────────────────────
+let catalogo = [];        // [{id, concepto, concepto_norm, codigoBarra, costoSinImpuesto}]
+let catalogoListo = false;
+
+function normalizarTexto(s){
+  return (s || "")
+    .toString()
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quita acentos
+    .replace(/[^a-z0-9\s\/\-\.\+]/g, " ")            // limpia raro
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Carga una sola vez (por páginas de 1000). Si tienes >1000, sigue trayendo.
+async function cargarCatalogoProductos(){
+  try{
+    catalogo = [];
+    catalogoListo = false;
+
+    let last = null;
+
+    while(true){
+      let q = query(
+        collection(db,"productos"),
+        orderBy("concepto"),
+        limit(1000)
+      );
+
+      if(last){
+        q = query(
+          collection(db,"productos"),
+          orderBy("concepto"),
+          startAfter(last),
+          limit(1000)
+        );
+      }
+
+      const snap = await getDocs(q);
+      if(snap.empty) break;
+
+      snap.forEach(ds=>{
+        const d = ds.data();
+        const concepto = d.concepto ?? d.Concepto ?? d.descripcion ?? d.Descripcion ?? "";
+        const codigoBarra = d.codigoBarra ?? d.CodigoBarra ?? d.codigo_barras ?? "";
+        const costo = Number(d.costoSinImpuesto ?? d["Costo sin Impuesto"] ?? d.costo ?? 0) || 0;
+
+        catalogo.push({
+          id: ds.id,
+          concepto,
+          concepto_norm: normalizarTexto(concepto),
+          codigoBarra: (codigoBarra || "").toString(),
+          costoSinImpuesto: costo
+        });
+      });
+
+      last = snap.docs[snap.docs.length - 1];
+
+      if(snap.size < 1000) break;
+    }
+
+    catalogoListo = true;
+    console.log("✅ Catálogo cargado COMPLETO:", catalogo.length);
+
+  }catch(e){
+    console.error("❌ Error cargando catálogo:", e);
+    catalogoListo = false;
+  }
+}
+// Cargar catálogo al iniciar
+cargarCatalogoProductos();
 
     // ── Estado/UI ───────────────────────────────────────────────────────────
     let productoActual = null;
@@ -122,8 +203,21 @@ codigoEl.addEventListener("keydown", e => {
     document.getElementById("btnGuardar").addEventListener("click", guardarMermas);
 async function manejarBusqueda(){
   const texto = codigoEl.value.trim();
-  sugerenciasEl.innerHTML = "";
-  sugerenciasEl.style.display = "none";
+// Si aún no termina de cargar el catálogo, muestra aviso y no sigas
+if(!catalogoListo){
+  if(texto.length >= 2){
+    sugerenciasEl.style.display = "block";
+    sugerenciasEl.innerHTML = "<div style='padding:10px'>⏳ Cargando catálogo...</div>";
+  }else{
+    sugerenciasEl.style.display = "none";
+    sugerenciasEl.innerHTML = "";
+  }
+  return;
+}
+
+// Ya cargó: limpia sugerencias antes de buscar
+sugerenciasEl.innerHTML = "";
+sugerenciasEl.style.display = "none";
 
   if(texto.length < 2) return;
 
@@ -141,40 +235,52 @@ async function manejarBusqueda(){
     buscarPorTexto(texto);
   }, 300);
 }
-async function buscarPorTexto(texto){
-  const q = query(
-    collection(db,"productos"),
-    where("descripcion", ">=", texto),
-    where("descripcion", "<=", texto + "\uf8ff")
-  );
-
-  const snap = await getDocs(q);
-  if(snap.empty){
-    console.log("❌ No se encontraron coincidencias para:", texto);
+function buscarPorTexto(texto){
+  if(!catalogoListo){
+    sugerenciasEl.style.display = "none";
     return;
   }
 
-  sugerenciasEl.style.display = "block";
+  const t = normalizarTexto(texto);
+  if(t.length < 2){
+    sugerenciasEl.style.display = "none";
+    return;
+  }
+
+  // “contiene” en cualquier parte del concepto
+  const resultados = catalogo
+    .filter(p => p.concepto_norm.includes(t))
+    .slice(0, 10);
+
+  if(resultados.length === 0){
+    sugerenciasEl.style.display = "none";
+    return;
+  }
+
   sugerenciasEl.innerHTML = "";
+  sugerenciasEl.style.display = "block";
 
-  snap.docs.slice(0,8).forEach(docSnap=>{
-    const d = docSnap.data();
-    const prod = { ...mapProducto(d), id: docSnap.id };
+  resultados.forEach(p=>{
+    const prod = {
+      descripcion: p.concepto,
+      costo: p.costoSinImpuesto,
+      id: p.id
+    };
 
-    const div = document.createElement("div");
-    div.textContent = `${prod.descripcion} – $${prod.costo.toFixed(2)}`;
-    div.style.padding = "8px";
-    div.style.cursor = "pointer";
-    div.style.borderBottom = "1px solid #ddd";
+    const item = document.createElement("div");
+    item.textContent = prod.descripcion;
+    item.style.padding = "10px";
+    item.style.cursor = "pointer";
+    item.style.borderBottom = "1px solid #ddd";
 
-    div.onclick = ()=>{
+    item.onclick = () => {
       productoActual = prod;
       codigoEl.value = prod.descripcion;
       descEl.textContent = `${prod.descripcion} | Costo: $${prod.costo.toFixed(2)}`;
       sugerenciasEl.style.display = "none";
     };
 
-    sugerenciasEl.appendChild(div);
+    sugerenciasEl.appendChild(item);
   });
 }
 
@@ -201,6 +307,13 @@ async function buscarPorTexto(texto){
      * Retorna { descripcion, costo } o null
      */
     async function buscarProductoPorCodigo(codigo){
+      // 0) Intento local (si el catálogo ya está cargado)
+if(catalogoListo){
+  const hit = catalogo.find(p => p.codigoBarra === codigo);
+  if(hit){
+    return { descripcion: hit.concepto, costo: hit.costoSinImpuesto, id: hit.id };
+  }
+}
       // 1) Intento directo por ID
       try{
         const byId = await getDoc(doc(db, "productos", codigo));
