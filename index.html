@@ -203,12 +203,16 @@ async function cargarCatalogoProductos(){
     const descEl        = document.getElementById("descripcionProducto");
     const codigoEl      = document.getElementById("codigoInput");
 
-    // Cerrar sugerencias al hacer click fuera
+    // ✅ Cargar catálogo al iniciar (ESTO TE FALTABA)
+cargarCatalogoProductos();
+
+// ✅ Cerrar sugerencias al hacer click fuera (AHORA sí existe codigoEl)
 document.addEventListener("click", (e)=>{
   if(!sugerenciasEl.contains(e.target) && e.target !== codigoEl){
     sugerenciasEl.style.display = "none";
   }
 });
+
 
 
     // Buscar al presionar Enter o al perder foco
@@ -248,7 +252,8 @@ sugerenciasEl.style.display = "none";
   clearTimeout(timeoutBusqueda);
   timeoutBusqueda = setTimeout(async ()=>{
     // primero intenta como código
-    const porCodigo = await buscarProductoPorCodigo(texto);
+    const pareceCodigo = /^\d{3,}$/.test(texto); // solo números 3+ (ajusta si quieres)
+const porCodigo = pareceCodigo ? await buscarProductoPorCodigo(texto) : null;
     if(porCodigo){
       productoActual = porCodigo;
       descEl.textContent = `${porCodigo.descripcion} | Costo: $${porCodigo.costo.toFixed(2)}`;
