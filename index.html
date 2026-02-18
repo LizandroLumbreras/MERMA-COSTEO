@@ -103,13 +103,6 @@ import {
   orderBy, startAfter, documentId
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import {
-  getAuth,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-
-
     // ── Firebase ────────────────────────────────────────────────────────────
     const firebaseConfig = {
       apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -121,18 +114,8 @@ import {
     };
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
-    const auth = getAuth(app);
 const params = new URLSearchParams(window.location.search);
 const vieneDeAuditoria = params.get("flow") === "audit";
-
-if (vieneDeAuditoria) {
-  onAuthStateChanged(auth, (user) => {
-    if (!user) {
-      sessionStorage.setItem("redirectAfterLogin", window.location.href);
-      window.location.href = "login.html";
-    }
-  });
-}
 
     // ── Catálogo en memoria (búsqueda local) ──────────────────────────────────
 let catalogo = [];        // [{id, concepto, concepto_norm, codigoBarra, costoSinImpuesto}]
