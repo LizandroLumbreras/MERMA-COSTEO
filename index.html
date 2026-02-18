@@ -97,10 +97,17 @@
       initializeApp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, doc, getDoc, collection, addDoc,
+  getFirestore, doc, getDoc,
+  collection, addDoc,
   serverTimestamp, query, where, getDocs, limit,
   orderBy, startAfter, documentId
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 
 
     // ── Firebase ────────────────────────────────────────────────────────────
@@ -114,6 +121,19 @@ import {
     };
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
+    const auth = getAuth(app);
+const params = new URLSearchParams(window.location.search);
+const vieneDeAuditoria = params.get("flow") === "audit";
+
+if (vieneDeAuditoria) {
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      sessionStorage.setItem("redirectAfterLogin", window.location.href);
+      window.location.href = "login.html";
+    }
+  });
+}
+
     // ── Catálogo en memoria (búsqueda local) ──────────────────────────────────
 let catalogo = [];        // [{id, concepto, concepto_norm, codigoBarra, costoSinImpuesto}]
 let catalogoListo = false;
@@ -453,14 +473,17 @@ async function guardarMermas(){
 
   try{
     // 🔹 Guardar en Firebase
-    for(const m of mermasCapturadas){
-      await addDoc(collection(db,"almacenes","MERMA","registros"),{
-        ...m,
-        sucursal,
-        folio,
-        fecha: serverTimestamp()
-      });
-    }
+await Promise.all(
+  mermasCapturadas.map(m =>
+    addDoc(collection(db,"almacenes","MERMA","registros"),{
+      ...m,
+      sucursal,
+      folio,
+      fecha: serverTimestamp()
+    })
+  )
+);
+
 
     // 🔹 Guardar en auditoría
     localStorage.setItem("aud_mermas", JSON.stringify(mermasCapturadas));
