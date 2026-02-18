@@ -490,8 +490,14 @@ await Promise.all(
 
     alert(`✅ Mermas guardadas con folio: ${folio}`);
 
-    // 🔹 Regresar al flujo de auditoría
-    window.location.href = "incidencias.html";
+  if (vieneDeAuditoria) {
+  // Sigue flujo de auditoría
+  window.location.href = "https://lizandrolumbreras.github.io/Auditorias-sucursales1.0/incidencias.html";
+} else {
+  // Uso independiente → regresar al inicio de merma
+  window.location.href = "https://lizandrolumbreras.github.io/MERMA-COSTEO/";
+}
+
 
   }catch(e){
     console.error(e);
