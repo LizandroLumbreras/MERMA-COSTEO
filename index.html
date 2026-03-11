@@ -2,10 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Costeo de Merma</title>
+  <title>DEVOLUDIONES SUCURSALES</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root{
       --principal:#e60000; --texto:white;
@@ -27,8 +28,17 @@
   position:relative; /* 👈 IMPORTANTE */
   z-index:50;
 }
-    input,textarea{width:100%;padding:12px;margin:10px 0;font-size:16px;border:none;border-radius:6px}
-    input:focus,textarea:focus{outline:2px solid #fff}
+    input, textarea, select{
+  width:100%;
+  padding:12px;
+  margin:10px 0;
+  font-size:16px;
+  border:none;
+  border-radius:6px;
+}
+    input:focus, textarea:focus, select:focus{
+  outline:2px solid #fff;
+}
     button{padding:10px 20px;background:var(--principal);color:white;border:none;cursor:pointer;border-radius:8px;font-weight:bold;box-shadow:0 2px 4px var(--sombra);margin-top:10px}
     table{width:100%;border-collapse:collapse;margin-top:20px}
     th,td{border:1px solid rgba(255,255,255,.3);padding:10px;text-align:left}
@@ -42,7 +52,7 @@
 </head>
 <body>
   <img src="logo_proveedora.webp" class="marca-agua" alt="Marca de agua" loading="lazy" />
-  <header><h2>📉 Costeo de Merma</h2></header>
+  <header><h2>FORMATO DEVOLUCIONES SUCURASALES PROVEEDORA</h2></header>
 
 <div class="input-box">
   <input type="text" id="codigoInput" placeholder="Escanea o escribe el código de barras" />
@@ -65,8 +75,13 @@
   <div class="descripcion-box" id="descripcionProducto"></div>
   <input type="number" id="cantidadInput" placeholder="Cantidad (piezas o kg)" />
   <textarea id="motivoInput" placeholder="Motivo de la merma"></textarea>
-  <input type="text" id="sucursalInput" placeholder="Sucursal o Bodega" />
-  <button id="btnAgregar">➕ Agregar a la tabla</button>
+<select id="sucursalSelect">
+<option value="">Selecciona sucursal</option>
+</select>
+
+<input type="text" id="encargadoInput" placeholder="Encargado de sucursal" readonly />
+
+<button id="btnAgregar">➕ Agregar a la tabla</button>
 </div>
 
   <table id="tablaMerma">
@@ -93,6 +108,7 @@
     let timeoutBusqueda = null;
     const sugerenciasEl = document.getElementById("sugerencias");
     let mermasCapturadas = [];
+    let encargadosSucursal = {};
     import {
       initializeApp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -198,7 +214,38 @@ async function cargarCatalogoProductos(){
       "</div>";
   }
 }
+async function cargarSucursales(){
 
+const snap = await getDocs(collection(db,"usuarios_ruta"));
+
+const select = document.getElementById("sucursalSelect");
+
+select.innerHTML = '<option value="">Selecciona sucursal</option>';
+
+snap.forEach(docu => {
+
+const d = docu.data();
+
+// verificar rol
+const rol = (d.rol || "").toLowerCase().trim();
+
+if(rol !== "encargado bodega") return;
+
+const sucursal = d.rutaId || d.ruta || d.sucursal || "SIN NOMBRE";
+const encargado = d.nombre || "SIN ENCARGADO";
+
+encargadosSucursal[sucursal] = encargado;
+
+const option = document.createElement("option");
+
+option.value = sucursal;
+option.textContent = sucursal;
+
+select.appendChild(option);
+
+});
+
+}
   // ── Estado/UI ───────────────────────────────────────────────────────────
     let productoActual = null;
     const cuerpoTabla   = document.querySelector("#tablaMerma tbody");
@@ -208,6 +255,7 @@ async function cargarCatalogoProductos(){
 
     // ✅ Cargar catálogo al iniciar (ESTO TE FALTABA)
 cargarCatalogoProductos();
+cargarSucursales();
 
 // ✅ Cerrar sugerencias al hacer click fuera (AHORA sí existe codigoEl)
 document.addEventListener("click", (e)=>{
@@ -215,7 +263,15 @@ document.addEventListener("click", (e)=>{
     sugerenciasEl.style.display = "none";
   }
 });
+document.getElementById("sucursalSelect").addEventListener("change",function(){
 
+const sucursal = this.value;
+
+const encargado = encargadosSucursal[sucursal] || "";
+
+document.getElementById("encargadoInput").value = encargado;
+
+});
 
 
     // Buscar al presionar Enter o al perder foco
@@ -361,6 +417,7 @@ const hit = catalogo.find(p => (p.codigoBarra || "").toString().trim() === cod);
       for(const campo of variantes){
         const q = query(collection(db,"productos"), where(campo,"==", codigo));
         const snap = await getDocs(q);
+        console.log("Usuarios ruta:", snap.docs.map(d=>d.data()));
         if(!snap.empty){
           const d = snap.docs[0].data();
           return mapProducto(d);
@@ -440,13 +497,127 @@ function limpiarCampos(){
   codigoEl.focus();
 }
 
+async function generarPDFMerma(folio, sucursal, encargado){
+
+const { jsPDF } = window.jspdf;
+const pdf = new jsPDF();
+
+const img = new Image();
+img.src = "./logo_proveedora.png";
+
+await new Promise(resolve => img.onload = resolve);
+
+const pageWidth = pdf.internal.pageSize.getWidth();
+const pageHeight = pdf.internal.pageSize.getHeight();
+
+let y = 20;
+
+// logo centrado
+const imgWidth = 60;
+const imgHeight = 20;
+const x = (pageWidth - imgWidth)/2;
+
+pdf.addImage(img,"PNG",x,y,imgWidth,imgHeight);
+
+y += 25;
+
+// linea separadora
+pdf.setLineWidth(0.5);
+pdf.line(15,y,pageWidth-15,y);
+
+y += 10;
+
+// titulo
+pdf.setFontSize(16);
+pdf.text("DECOLUCION SUCURSAL",pageWidth/2,y,{align:"center"});
+
+y += 10;
+
+// fecha
+const fecha = new Date().toLocaleString();
+
+pdf.setFontSize(10);
+pdf.text(`Folio: ${folio}`,15,y);
+pdf.text(`Fecha: ${fecha}`,pageWidth-15,y,{align:"right"});
+
+y += 6;
+pdf.text(`Sucursal: ${sucursal}`,15,y);
+
+y += 6;
+pdf.text(`Encargado: ${encargado}`,15,y);
+
+y += 10;
+
+// encabezado tabla
+pdf.setFontSize(10);
+
+pdf.setFillColor(220,220,220);
+pdf.rect(15,y,180,7,"F");
+
+pdf.text("#",17,y+5);
+pdf.text("Descripción",25,y+5);
+pdf.text("Motivo",95,y+5);
+pdf.text("Cant.",150,y+5,{align:"center"});
+pdf.text("Costo",165,y+5,{align:"right"});
+pdf.text("Total",190,y+5,{align:"right"});
+
+y += 10;
+
+let totalGeneral = 0;
+
+mermasCapturadas.forEach((m,i)=>{
+
+// salto de página
+if(y > pageHeight - 30){
+pdf.addPage();
+y = 20;
+}
+
+pdf.rect(15,y-4,180,8);
+
+pdf.text(String(i+1),17,y);
+pdf.text(m.descripcion.substring(0,35),25,y);
+pdf.text(m.motivo.substring(0,25),95,y);
+
+pdf.text(String(m.cantidad),150,y,{align:"center"});
+pdf.text("$"+m.costo_unitario.toFixed(2),165,y,{align:"right"});
+pdf.text("$"+m.total.toFixed(2),190,y,{align:"right"});
+
+totalGeneral += m.total;
+
+y += 8;
+
+});
+
+// total
+y += 5;
+
+pdf.setFontSize(11);
+
+pdf.text("TOTAL GENERAL:",160,y,{align:"right"});
+pdf.text("$"+totalGeneral.toFixed(2),190,y,{align:"right"});
+
+y += 20;
+
+// firmas
+pdf.line(30,y,90,y);
+pdf.line(120,y,180,y);
+
+pdf.text("Encargado de Sucursal",60,y+5,{align:"center"});
+pdf.text("Recibe Devolución",150,y+5,{align:"center"});
+
+pdf.save(`MERMA_${folio}.pdf`);
+
+}
 
 async function guardarMermas(){
   if(mermasCapturadas.length === 0){
     return alert("No hay mermas para guardar.");
   }
 
-  const sucursal = document.getElementById("sucursalInput").value.trim();
+const sucursal = document.getElementById("sucursalSelect").value;
+const encargado = document.getElementById("encargadoInput").value;
+if(!encargado) return alert("Escribe el nombre del encargado.");
   if(!sucursal) return alert("Escribe la sucursal o bodega.");
 
   if(!confirm("¿Deseas guardar todas las mermas?")) return;
@@ -472,6 +643,7 @@ await Promise.all(
     localStorage.setItem("aud_mermas", JSON.stringify(mermasCapturadas));
 
     alert(`✅ Mermas guardadas con folio: ${folio}`);
+    await generarPDFMerma(folio, sucursal, encargado);
 
   if (vieneDeAuditoria) {
   // Sigue flujo de auditoría
@@ -484,7 +656,7 @@ await Promise.all(
 
   }catch(e){
     console.error(e);
-    alert("❌ Error al guardar las mermas.");
+    alert("❌ Error: " + e.message);
   }
 }
   </script>
