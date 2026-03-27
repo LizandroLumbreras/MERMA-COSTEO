@@ -573,11 +573,28 @@ pdf.addPage();
 y = 20;
 }
 
-pdf.rect(15,y-4,180,8);
+pdf.rect(15, y - 4, 180, lineas * 6 + 2);
 
 pdf.text(String(i+1),17,y);
-pdf.text(m.descripcion.substring(0,35),25,y);
-pdf.text(m.motivo.substring(0,25),95,y);
+const desc = pdf.splitTextToSize(m.descripcion, 65); // ancho columna descripción
+const motivo = pdf.splitTextToSize(m.motivo, 50);   // ancho columna motivo
+
+// calcular cuántas líneas ocupa el más largo
+const lineas = Math.max(desc.length, motivo.length);
+
+// imprimir descripción
+pdf.text(desc, 25, y);
+
+// imprimir motivo
+pdf.text(motivo, 95, y);
+
+// cantidades (solo una línea, centradas verticalmente)
+pdf.text(String(m.cantidad), 150, y, {align:"center"});
+pdf.text("$"+m.costo_unitario.toFixed(2), 165, y, {align:"right"});
+pdf.text("$"+m.total.toFixed(2), 190, y, {align:"right"});
+
+// aumentar Y dependiendo de cuántas líneas ocupó
+y += lineas * 6;
 
 pdf.text(String(m.cantidad),150,y,{align:"center"});
 pdf.text("$"+m.costo_unitario.toFixed(2),165,y,{align:"right"});
