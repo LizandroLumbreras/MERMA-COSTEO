@@ -573,36 +573,29 @@ pdf.addPage();
 y = 20;
 }
 
-pdf.rect(15, y - 4, 180, lineas * 6 + 2);
 
-pdf.text(String(i+1),17,y);
 const desc = pdf.splitTextToSize(m.descripcion, 65); // ancho columna descripción
 const motivo = pdf.splitTextToSize(m.motivo, 50);   // ancho columna motivo
 
 // calcular cuántas líneas ocupa el más largo
 const lineas = Math.max(desc.length, motivo.length);
-
+pdf.rect(15, y - 4, 180, lineas * 6 + 2);
+pdf.text(String(i+1),17,y);
 // imprimir descripción
 pdf.text(desc, 25, y);
 
 // imprimir motivo
 pdf.text(motivo, 95, y);
 
-// cantidades (solo una línea, centradas verticalmente)
-pdf.text(String(m.cantidad), 150, y, {align:"center"});
-pdf.text("$"+m.costo_unitario.toFixed(2), 165, y, {align:"right"});
-pdf.text("$"+m.total.toFixed(2), 190, y, {align:"right"});
+const offset = (lineas * 6) / 2;
 
-// aumentar Y dependiendo de cuántas líneas ocupó
-y += lineas * 6;
-
-pdf.text(String(m.cantidad),150,y,{align:"center"});
-pdf.text("$"+m.costo_unitario.toFixed(2),165,y,{align:"right"});
-pdf.text("$"+m.total.toFixed(2),190,y,{align:"right"});
+pdf.text(String(m.cantidad),150,y + offset - 3,{align:"center"});
+pdf.text("$"+m.costo_unitario.toFixed(2),165,y + offset - 3,{align:"right"});
+pdf.text("$"+m.total.toFixed(2),190,y + offset - 3,{align:"right"});
 
 totalGeneral += m.total;
 
-y += 8;
+y += lineas * 6;
 
 });
 
